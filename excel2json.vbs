@@ -99,7 +99,7 @@ Function GetLine(ByRef sheet As Worksheet, ByVal iRow As Integer)
         res = res + ENDL
     End If
     If ONE_LINE Then
-        GetLine = res + "}"
+        GetLine = res + " }"
     Else
         GetLine = res + TABS + "}"
     End If
@@ -164,7 +164,3 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
         SaveToJson ActiveWorkbook.Worksheets(i)
     Next i
 End Sub
-
-
-
-
