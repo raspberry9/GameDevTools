@@ -16,14 +16,17 @@
 '    5. KV_TYPE을 설정합니다.
 '       KV_TYPE이 True이면 엑셀 시트에서 첫 번째 열의 값을 key로 하는 dictionary 형태로 저장되며
 '       KV_TYPE이 False이면 키가 없이 list 형태로 저장 됩니다.
-'    6. 엑셀을 다른으름으로 저장하여 Excel 매크로 사용 통합 문서 형식으로 저장 합니다.
-'    7. 엑셀 문서를 저장하면 자동으로 OUTPUT_PATH에 <시트이름>.json으로 각각 저장 됩니다.
+'    6. ENC_TYPE을 설정합니다.
+'       "utf-8", "euc-kr" 등 원하는 저장 인코딩 방식을 선택 합니다.
+'    7. 엑셀을 다른으름으로 저장하여 Excel 매크로 사용 통합 문서 형식으로 저장 합니다.
+'    8. 엑셀 문서를 저장하면 자동으로 OUTPUT_PATH에 <시트이름>.json으로 각각 저장 됩니다.
 ' ----------------------------------------------------------------------------------------------------------------------------------
 
 Public OUTPUT_PATH As String
 Public IGNORE_EMPTY As Boolean
 Public ONE_LINE As Boolean
 Public KV_TYPE As Boolean
+Public ENC_TYPE As String
 
 Public TABS As String
 Public ENDL As String
@@ -37,6 +40,7 @@ Private Sub Config()
     IGNORE_EMPTY = True
     ONE_LINE = True
     KV_TYPE = False
+    ENC_TYPE = "utf-8" ' or "euc-kr"
 End Sub
 
 Function GetLine(ByRef sheet As Worksheet, ByVal iRow As Integer)
@@ -108,44 +112,50 @@ End Function
 Private Sub SaveToJson(ByRef sheet As Worksheet)
     Dim iRow, iRowMax As Integer
     Dim key As String
-    Dim val As String
+    Dim val, vals As String
     Dim filepath As String
+    Dim fs
     
     filepath = OUTPUT_PATH + "\" + sheet.Name
    
-    Open filepath + ".json" For Output As #1
     If KV_TYPE Then
-        Print #1, "{"
+        vals = "{" + ENDL
     Else
-        Print #1, "["
+        vals = "[" + ENDL
     End If
-    Close #1
     
-    Open filepath + ".json" For Append As #1
     iRowMax = sheet.Cells(sheet.Rows.Count, 1).End(xlUp).Row
     For iRow = 2 To iRowMax
         key = QUOT + Trim(Str(sheet.Cells(iRow, 1))) + QUOT
         val = GetLine(sheet, iRow)
         If iRow < iRowMax Then
             If KV_TYPE Then
-                Print #1, TABS + key + ": " + val + COMMA
+                vals = vals + TABS + key + ": " + val + COMMA + ENDL
             Else
-                Print #1, TABS + val + COMMA
+                vals = vals + TABS + val + COMMA + ENDL
             End If
         Else
             If KV_TYPE Then
-                Print #1, TABS + key + ": " + val
+                vals = vals + TABS + key + ": " + val + ENDL
             Else
-                Print #1, TABS + val
+                vals = vals + TABS + val + ENDL
             End If
         End If
     Next iRow
     If KV_TYPE Then
-        Print #1, "}"
+        vals = vals + "}" + ENDL
     Else
-        Print #1, "]"
+        vals = vals + "]" + ENDL
     End If
-    Close #1
+    
+    
+    Set fs = CreateObject("ADODB.Stream")
+    With fs
+        .Charset = ENC_TYPE
+        .Open
+        .WriteText vals
+        .SaveToFile filepath + ".json", 2
+    End With
     
 End Sub
 
