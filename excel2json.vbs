@@ -27,6 +27,7 @@ Public IGNORE_EMPTY As Boolean
 Public ONE_LINE As Boolean
 Public KV_TYPE As Boolean
 Public ENC_TYPE As String
+Public IGNORE_EXCEPT As Variant
 
 Public TABS As String
 Public ENDL As String
@@ -39,8 +40,9 @@ Private Sub Config()
     OUTPUT_PATH = Application.ActiveWorkbook.Path
     IGNORE_EMPTY = True
     ONE_LINE = True
-    KV_TYPE = False
+    KV_TYPE = True
     ENC_TYPE = "utf-8" ' or "euc-kr"
+    IGNORE_EXCEPT = Array("CharExp:exp") ' 이 배열에 "시트명:컬럼명" 형태로 추가하면 해당 컬럼은 값이 0이더라도 생략하지 않고 표시해준다.
 End Sub
 
 Function GetLine(ByRef sheet As Worksheet, ByVal iRow As Integer)
@@ -70,13 +72,19 @@ Function GetLine(ByRef sheet As Worksheet, ByVal iRow As Integer)
             key = QUOT + sheet.Cells(1, iCol) + QUOT
             
             If IsNumeric(sheet.Cells(iRow, iCol)) Then
-                If IGNORE_EMPTY And sheet.Cells(iRow, iCol) = 0 Then
+                If (IGNORE_EMPTY And UBound(Filter(IGNORE_EXCEPT, sheet.Name + ":" + sheet.Cells(1, iCol))) >= 0) Then
+                    val = Trim(Str(sheet.Cells(iRow, iCol)))
+                ElseIf IGNORE_EMPTY And sheet.Cells(iRow, iCol) = 0 Then
                     bIgnore = True
                 Else
                     val = Trim(Str(sheet.Cells(iRow, iCol)))
                 End If
             Else
-                If IGNORE_EMPTY And Trim(sheet.Cells(iRow, iCol)) = "" Then
+                val = Trim(sheet.Cells(iRow, iCol))
+                If Len(val) >= 2 And Left(val, 1) = "[" And Right(val, 1) = "]" Then
+                    ' [로 시작해서 ]로 끝나는것은 리스트로 간주하여 스트링으로 저장하지 않고 리스트로 저장한다.
+                    val = Trim(sheet.Cells(iRow, iCol))
+                ElseIf IGNORE_EMPTY And Trim(sheet.Cells(iRow, iCol)) = "" Then
                     bIgnore = True
                 Else
                     val = QUOT + Trim(sheet.Cells(iRow, iCol)) + QUOT
